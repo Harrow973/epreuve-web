@@ -1,27 +1,40 @@
 {
-  "name": "@epreuve/api",
+  "name": "@troov/api",
   "version": "0.0.0",
   "private": true,
   "type": "commonjs",
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "nest build",
+    "start": "nest start",
     "dev": "nest start --watch",
-    "start": "node dist/main.js",
+    "start:dev": "nest start --watch",
+    "start:prod": "node dist/main.js",
     "lint": "tsc --noEmit",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prisma:generate": "prisma generate --config prisma.config.ts",
+    "prisma:migrate": "prisma migrate dev --config prisma.config.ts",
+    "prisma:studio": "prisma studio --config prisma.config.ts --port 5552",
+    "prisma:validate": "prisma validate --config prisma.config.ts",
+    "prisma:seed": "prisma db seed --config prisma.config.ts"
   },
   "dependencies": {
-    "@epreuve/database": "0.0.0",
     "@nestjs/common": "^11.1.0",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.1.0",
     "@nestjs/platform-express": "^11.1.0",
+    "@prisma/adapter-pg": "7.7.0",
+    "@prisma/client": "7.7.0",
+    "dotenv": "^16.6.1",
+    "pg": "^8.20.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.7",
     "@types/node": "^22.15.21",
+    "@types/pg": "^8.18.0",
+    "prisma": "7.7.0",
+    "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
   }
 }

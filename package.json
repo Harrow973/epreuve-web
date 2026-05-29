@@ -3,17 +3,18 @@
   "private": true,
   "packageManager": "npm@11.6.2",
   "workspaces": [
-    "apps/*",
-    "packages/*"
+    "apps/*"
   ],
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
-    "db:generate": "turbo run db:generate",
-    "db:migrate": "turbo run db:migrate",
-    "db:studio": "turbo run db:studio",
+    "db:generate": "npm run prisma:generate -w @troov/api",
+    "db:migrate": "npm run prisma:migrate -w @troov/api",
+    "db:studio": "npm run prisma:studio -w @troov/api",
+    "db:validate": "npm run prisma:validate -w @troov/api",
+    "db:seed": "npm run prisma:seed -w @troov/api",
     "format": "prettier --write ."
   },
   "devDependencies": {

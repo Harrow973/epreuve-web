@@ -8,6 +8,7 @@ import { FavoritesModule } from "./modules/favorites/favorites.module";
 import { HealthModule } from "./modules/health/health.module";
 import { ListingsModule } from "./modules/listings/listings.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
+import { PaymentsModule } from "./modules/payments/payments.module";
 import { RequestsModule } from "./modules/requests/requests.module";
 import { UsersModule } from "./modules/users/users.module";
 
@@ -27,6 +28,7 @@ import { UsersModule } from "./modules/users/users.module";
     FavoritesModule,
     ConversationsModule,
     NotificationsModule,
+    PaymentsModule,
   ],
 })
 export class AppModule {}

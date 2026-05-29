@@ -20,7 +20,7 @@ npm run dev
 
 Le dossier `apps/web` est reserve au projet Next.js que le frontend initialisera.
 Le dossier `apps/api` contient l'API NestJS.
-Le package `packages/database` contient le setup Prisma/PostgreSQL partage.
+Le dossier `apps/api/prisma` contient le schema Prisma, les migrations et les seeds.
 
 ## Scripts
 
@@ -30,7 +30,9 @@ Le package `packages/database` contient le setup Prisma/PostgreSQL partage.
 - `npm run typecheck`: verifie TypeScript
 - `npm run db:generate`: genere le client Prisma
 - `npm run db:migrate`: applique une migration Prisma locale
-- `npm run db:studio`: ouvre Prisma Studio
+- `npm run db:studio`: ouvre Prisma Studio via `@troov/api`
+- `npm run db:validate`: valide le schema Prisma
+- `npm run db:seed`: lance le seed Prisma
 
 ## API NestJS
 

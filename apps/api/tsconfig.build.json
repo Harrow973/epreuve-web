@@ -6,10 +6,7 @@
     "noEmit": false,
     "outDir": "dist",
     "rootDir": "src",
-    "tsBuildInfoFile": "dist/tsconfig.tsbuildinfo",
-    "paths": {
-      "@epreuve/database": ["../../packages/database/dist/index.d.ts"]
-    }
+    "tsBuildInfoFile": "dist/tsconfig.tsbuildinfo"
   },
   "exclude": ["dist", "node_modules", "**/*.spec.ts"]
 }
