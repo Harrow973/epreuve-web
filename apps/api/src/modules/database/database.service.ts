@@ -1,7 +1,12 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
+import { config } from "dotenv";
 import { Pool } from "pg";
+
+// Prisma is initialized at module import time, before Nest's ConfigModule is ready.
+config({ path: "../../.env" });
+config({ path: ".env" });
 
 const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;

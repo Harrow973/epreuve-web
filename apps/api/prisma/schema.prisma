@@ -6,18 +6,16 @@ datasource db {
   provider = "postgresql"
 }
 
-model AuthUser {
+/// Better Auth core user table. Keep app/profile fields in `user_profiles`.
+model User {
   id                 String                    @id @default(uuid()) @db.Uuid
+  name               String
   email              String                    @unique @db.VarChar(255)
-  emailVerified      Boolean                   @default(false) @map("email_verified")
-  passwordHash       String?                   @map("password_hash")
-  role               String                    @default("USER") @db.VarChar(30)
-  status             String                    @default("ACTIVE") @db.VarChar(30)
-  lastLoginAt        DateTime?                 @map("last_login_at")
+  emailVerified      Boolean                   @default(false)
+  image              String?
   createdAt          DateTime                  @default(now()) @map("created_at")
   updatedAt          DateTime                  @updatedAt @map("updated_at")
-  deletedAt          DateTime?                 @map("deleted_at")
-  accounts           AuthAccount[]
+  accounts           Account[]
   auditLogs          AuditLog[]
   blockedUsers       UserBlock[]               @relation("BlockedUsers")
   blockedByUsers     UserBlock[]               @relation("BlockedByUsers")
@@ -37,56 +35,69 @@ model AuthUser {
   reviewsGiven       Review[]                  @relation("ReviewReviewer")
   reviewsReceived    Review[]                  @relation("ReviewReviewedUser")
   savedSearches      SavedSearch[]
-  sessions           AuthSession[]
+  sessions           Session[]
   targetActions      ModerationAction[]        @relation("ModerationTargetUser")
   userAddresses      UserAddress[]
   userVerifications  UserVerification[]
-  verificationTokens AuthVerificationToken[]
 
-  @@map("auth_users")
+  @@map("user")
 }
 
-model AuthSession {
+/// Better Auth session table. The token column stores the SHA-256 hash of the cookie token.
+model Session {
   id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @map("user_id") @db.Uuid
-  tokenHash String   @unique @map("token_hash")
-  ipAddress String?  @map("ip_address") @db.VarChar(45)
-  userAgent String?  @map("user_agent")
-  expiresAt DateTime @map("expires_at")
+  expiresAt DateTime
+  token     String   @unique
   createdAt DateTime @default(now()) @map("created_at")
-  user      AuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  updatedAt DateTime @updatedAt @map("updated_at")
+  ipAddress String?  @db.VarChar(45)
+  userAgent String?
+  userId    String   @db.Uuid
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("auth_sessions")
+  @@map("session")
 }
 
-model AuthAccount {
-  id                String   @id @default(uuid()) @db.Uuid
-  userId            String   @map("user_id") @db.Uuid
-  provider          String   @db.VarChar(50)
-  providerAccountId String?  @map("provider_account_id") @db.VarChar(255)
-  createdAt         DateTime @default(now()) @map("created_at")
-  user              AuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+/// Better Auth account table. The MVP only creates `credential` accounts for email/password login.
+model Account {
+  id                    String    @id @default(uuid()) @db.Uuid
+  accountId             String    @db.VarChar(255)
+  providerId            String    @db.VarChar(50)
+  userId                String    @db.Uuid
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([provider, providerAccountId])
-  @@map("auth_accounts")
+  @@unique([providerId, accountId])
+  @@map("account")
 }
 
-model AuthVerificationToken {
-  id        String    @id @default(uuid()) @db.Uuid
-  userId    String?   @map("user_id") @db.Uuid
-  email     String?   @db.VarChar(255)
-  tokenHash String    @unique @map("token_hash")
-  type      String    @db.VarChar(50)
-  expiresAt DateTime  @map("expires_at")
-  createdAt DateTime  @default(now()) @map("created_at")
-  user      AuthUser? @relation(fields: [userId], references: [id], onDelete: Cascade)
+/// Better Auth verification table reserved for email verification and password reset flows.
+model Verification {
+  id         String    @id @default(uuid()) @db.Uuid
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime? @default(now()) @map("created_at")
+  updatedAt  DateTime? @updatedAt @map("updated_at")
 
-  @@map("auth_verification_tokens")
+  @@map("verification")
 }
 
 model UserProfile {
   id            String   @id @default(uuid()) @db.Uuid
   userId        String   @unique @map("user_id") @db.Uuid
+  role          String   @default("USER") @db.VarChar(30)
+  status        String   @default("ACTIVE") @db.VarChar(30)
+  lastLoginAt   DateTime? @map("last_login_at")
+  deletedAt     DateTime? @map("deleted_at")
   firstName     String?  @map("first_name") @db.VarChar(100)
   lastName      String?  @map("last_name") @db.VarChar(100)
   displayName   String   @map("display_name") @db.VarChar(150)
@@ -103,7 +114,7 @@ model UserProfile {
   ratingCount   Int?     @default(0) @map("rating_count")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
-  user          AuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_profiles")
 }
@@ -115,7 +126,7 @@ model UserVerification {
   status     String    @db.VarChar(30)
   verifiedAt DateTime? @map("verified_at")
   createdAt  DateTime  @default(now()) @map("created_at")
-  user       AuthUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_verifications")
 }
@@ -134,7 +145,7 @@ model UserAddress {
   isDefault    Boolean  @default(false) @map("is_default")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
-  user         AuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_addresses")
 }
@@ -179,7 +190,7 @@ model Listing {
   favorites         Favorite[]
   images            ListingImage[]
   location          ListingLocation?
-  owner             AuthUser              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  owner             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   moderationActions ModerationAction[]
   reports           Report[]
   requests          ListingRequest[]
@@ -236,7 +247,7 @@ model Favorite {
   listingId String   @map("listing_id") @db.Uuid
   createdAt DateTime @default(now()) @map("created_at")
   listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  user      AuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, listingId])
   @@map("favorites")
@@ -256,9 +267,9 @@ model ListingRequest {
   updatedAt     DateTime       @updatedAt @map("updated_at")
   conversations Conversation[]
   listing       Listing        @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  owner         AuthUser       @relation("RequestOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  owner         User       @relation("RequestOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   payments      Payment[]
-  requester     AuthUser       @relation("RequestRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  requester     User       @relation("RequestRequester", fields: [requesterId], references: [id], onDelete: Cascade)
 
   @@map("listing_requests")
 }
@@ -283,7 +294,7 @@ model ConversationParticipant {
   lastReadAt     DateTime?    @map("last_read_at")
   joinedAt       DateTime     @default(now()) @map("joined_at")
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  user           AuthUser     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([conversationId, userId])
   @@map("conversation_participants")
@@ -299,7 +310,7 @@ model Message {
   deletedAt      DateTime?    @map("deleted_at")
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   reports        Report[]
-  sender         AuthUser     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  sender         User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
 
   @@map("messages")
 }
@@ -313,8 +324,8 @@ model Review {
   comment        String?
   createdAt      DateTime @default(now()) @map("created_at")
   listing        Listing? @relation(fields: [listingId], references: [id])
-  reviewedUser   AuthUser @relation("ReviewReviewedUser", fields: [reviewedUserId], references: [id], onDelete: Cascade)
-  reviewer       AuthUser @relation("ReviewReviewer", fields: [reviewerId], references: [id], onDelete: Cascade)
+  reviewedUser   User @relation("ReviewReviewedUser", fields: [reviewedUserId], references: [id], onDelete: Cascade)
+  reviewer       User @relation("ReviewReviewer", fields: [reviewerId], references: [id], onDelete: Cascade)
 
   @@unique([listingId, reviewerId, reviewedUserId])
   @@map("reviews")
@@ -334,8 +345,8 @@ model Report {
   listing           Listing?           @relation(fields: [listingId], references: [id])
   message           Message?           @relation(fields: [messageId], references: [id])
   moderationActions ModerationAction[]
-  reportedUser      AuthUser?          @relation("ReportReportedUser", fields: [reportedUserId], references: [id])
-  reporter          AuthUser           @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  reportedUser      User?          @relation("ReportReportedUser", fields: [reportedUserId], references: [id])
+  reporter          User           @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
 
   @@map("reports")
 }
@@ -350,9 +361,9 @@ model ModerationAction {
   reason       String?
   createdAt    DateTime  @default(now()) @map("created_at")
   listing      Listing?  @relation(fields: [listingId], references: [id])
-  moderator    AuthUser  @relation("ModerationModerator", fields: [moderatorId], references: [id], onDelete: Cascade)
+  moderator    User  @relation("ModerationModerator", fields: [moderatorId], references: [id], onDelete: Cascade)
   report       Report?   @relation(fields: [reportId], references: [id])
-  targetUser   AuthUser? @relation("ModerationTargetUser", fields: [targetUserId], references: [id])
+  targetUser   User? @relation("ModerationTargetUser", fields: [targetUserId], references: [id])
 
   @@map("moderation_actions")
 }
@@ -366,7 +377,7 @@ model Notification {
   targetUrl String?   @map("target_url")
   readAt    DateTime? @map("read_at")
   createdAt DateTime  @default(now()) @map("created_at")
-  user      AuthUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("notifications")
 }
@@ -384,8 +395,8 @@ model Payment {
   status            String          @db.VarChar(30)
   paidAt            DateTime?       @map("paid_at")
   createdAt         DateTime        @default(now()) @map("created_at")
-  payer             AuthUser        @relation("PaymentPayer", fields: [payerId], references: [id], onDelete: Cascade)
-  receiver          AuthUser        @relation("PaymentReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  payer             User        @relation("PaymentPayer", fields: [payerId], references: [id], onDelete: Cascade)
+  receiver          User        @relation("PaymentReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
   refunds           Refund[]
   request           ListingRequest? @relation(fields: [requestId], references: [id])
 
@@ -408,8 +419,8 @@ model UserBlock {
   blockerId String   @map("blocker_id") @db.Uuid
   blockedId String   @map("blocked_id") @db.Uuid
   createdAt DateTime @default(now()) @map("created_at")
-  blocked   AuthUser @relation("BlockedByUsers", fields: [blockedId], references: [id], onDelete: Cascade)
-  blocker   AuthUser @relation("BlockedUsers", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked   User @relation("BlockedByUsers", fields: [blockedId], references: [id], onDelete: Cascade)
+  blocker   User @relation("BlockedUsers", fields: [blockerId], references: [id], onDelete: Cascade)
 
   @@id([blockerId, blockedId])
   @@map("user_blocks")
@@ -430,7 +441,7 @@ model SavedSearch {
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
   category      Category? @relation(fields: [categoryId], references: [id])
-  user          AuthUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("saved_searches")
 }
@@ -445,7 +456,7 @@ model AuditLog {
   userAgent  String?   @map("user_agent")
   metadata   Json?
   createdAt  DateTime  @default(now()) @map("created_at")
-  user       AuthUser? @relation(fields: [userId], references: [id])
+  user       User? @relation(fields: [userId], references: [id])
 
   @@map("audit_logs")
 }

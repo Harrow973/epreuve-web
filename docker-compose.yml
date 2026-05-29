@@ -16,5 +16,15 @@ services:
       timeout: 5s
       retries: 10
 
+  # Interface web legere pour inspecter PostgreSQL sans passer par Prisma Studio.
+  adminer:
+    image: adminer:4
+    container_name: epreuve_web_adminer
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+
 volumes:
   postgres_data:

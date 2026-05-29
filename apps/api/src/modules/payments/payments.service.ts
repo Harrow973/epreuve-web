@@ -56,7 +56,7 @@ export class PaymentsService {
       throw new BadRequestException("Owner cannot buy their own listing");
     }
 
-    const buyer = await this.database.prisma.authUser.findUnique({
+    const buyer = await this.database.prisma.user.findUnique({
       where: { id: buyerId },
       select: { id: true },
     });

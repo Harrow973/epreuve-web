@@ -1,0 +1,379 @@
+Table user {
+  id uuid [pk]
+  name text [not null] // Nom Better Auth
+  email varchar(255) [not null, unique] // Email de connexion
+  emailVerified boolean [not null, default: false] // Email vérifié ou non
+  image text // Avatar Better Auth
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table session {
+  id uuid [pk]
+  expiresAt timestamp [not null] // Expiration de la session
+  token text [not null, unique] // Token de session hashé en application
+  ip_address varchar(45) // Adresse IP
+  user_agent text // Navigateur ou appareil
+  userId uuid [not null, ref: > user.id] // Utilisateur lié
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table account {
+  id uuid [pk]
+  accountId varchar(255) [not null] // Email pour credential
+  providerId varchar(50) [not null] // credential uniquement pour le MVP
+  userId uuid [not null, ref: > user.id] // Utilisateur lié
+  accessToken text
+  refreshToken text
+  idToken text
+  accessTokenExpiresAt timestamp
+  refreshTokenExpiresAt timestamp
+  scope text
+  password text // Mot de passe hashé pour email/password
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    (providerId, accountId) [unique]
+  }
+}
+
+Table verification {
+  id uuid [pk]
+  identifier text [not null] // Identifiant Better Auth
+  value text [not null] // Valeur/token Better Auth
+  expiresAt timestamp [not null]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table user_profiles {
+  id uuid [pk]
+  user_id uuid [not null, unique, ref: > user.id] // Compte associé
+  role varchar(30) [not null, default: 'USER'] // USER, MODERATOR, ADMIN
+  status varchar(30) [not null, default: 'ACTIVE'] // ACTIVE, SUSPENDED, DELETED
+  last_login_at timestamp // Dernière connexion
+  deleted_at timestamp // Suppression métier Troov
+
+  first_name varchar(100) // Prénom
+  last_name varchar(100) // Nom
+  display_name varchar(150) [not null] // Nom affiché publiquement
+  avatar_url text // Photo de profil
+  phone_number varchar(30) // Téléphone
+  phone_verified boolean [not null, default: false] // Téléphone vérifié
+
+  bio text // Présentation du profil
+
+  city varchar(100) // Ville principale
+  postal_code varchar(20) // Code postal
+  country varchar(100) // Pays
+  latitude decimal(10,7) // Latitude du profil
+  longitude decimal(10,7) // Longitude du profil
+
+  rating decimal(3,2) [default: 0] // Note moyenne
+  rating_count integer [default: 0] // Nombre d’avis
+
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table user_verifications {
+  id uuid [pk]
+  user_id uuid [not null, ref: > user.id] // Utilisateur vérifié
+  type varchar(50) [not null] // EMAIL, PHONE, IDENTITY
+  status varchar(30) [not null] // PENDING, VERIFIED, REJECTED
+  verified_at timestamp // Date de validation
+  created_at timestamp [not null]
+}
+
+Table user_addresses {
+  id uuid [pk]
+  user_id uuid [not null, ref: > user.id] // Utilisateur lié
+
+  label varchar(100) // Exemple : maison, travail
+  address_line_1 varchar(255) [not null] // Numéro et rue
+  address_line_2 varchar(255) // Complément d’adresse
+  city varchar(100) [not null] // Ville
+  postal_code varchar(20) // Code postal
+  country varchar(100) [not null] // Pays
+
+  latitude decimal(10,7) [not null] // Latitude exacte
+  longitude decimal(10,7) [not null] // Longitude exacte
+
+  is_default boolean [not null, default: false] // Adresse principale
+
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table categories {
+  id uuid [pk]
+  parent_id uuid [ref: > categories.id] // Catégorie parente
+
+  name varchar(100) [not null] // Nom de la catégorie
+  slug varchar(100) [not null, unique] // Slug URL
+  icon varchar(100) // Icône UI
+  sort_order integer [default: 0] // Ordre d’affichage
+
+  created_at timestamp [not null]
+}
+
+Table listings {
+  id uuid [pk]
+  user_id uuid [not null, ref: > user.id] // Propriétaire de l’annonce
+  category_id uuid [ref: > categories.id] // Catégorie associée
+
+  title varchar(255) [not null] // Titre de l’annonce
+  description text [not null] // Description détaillée
+
+  listing_type varchar(30) [not null] // SALE, LOAN, RENTAL, SERVICE
+  status varchar(30) [not null, default: 'DRAFT'] // DRAFT, ACTIVE, RESERVED, COMPLETED, ARCHIVED, BLOCKED
+
+  price decimal(10,2) // Prix de vente ou de location
+  price_unit varchar(30) // HOUR, DAY, WEEK, MONTH, FIXED
+  deposit_amount decimal(10,2) // Caution éventuelle
+
+  available boolean [not null, default: true] // Disponible ou non
+
+  view_count integer [not null, default: 0] // Nombre de vues
+  favorite_count integer [not null, default: 0] // Nombre de favoris
+
+  published_at timestamp // Date de publication
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  deleted_at timestamp
+}
+
+Table listing_locations {
+  id uuid [pk]
+  listing_id uuid [not null, unique, ref: > listings.id] // Annonce liée
+
+  address_line_1 varchar(255) [not null] // Numéro et rue
+  address_line_2 varchar(255) // Complément d’adresse
+  city varchar(100) [not null] // Ville
+  postal_code varchar(20) // Code postal
+  country varchar(100) [not null] // Pays
+
+  latitude decimal(10,7) [not null] // Latitude exacte
+  longitude decimal(10,7) [not null] // Longitude exacte
+
+  location_visibility varchar(30) [not null, default: 'CITY'] // EXACT, STREET, CITY, HIDDEN
+  public_location_label varchar(255) // Adresse affichée publiquement
+
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table listing_images {
+  id uuid [pk]
+  listing_id uuid [not null, ref: > listings.id] // Annonce liée
+
+  image_url text [not null] // URL de l’image
+  alt_text varchar(255) // Texte alternatif
+  sort_order integer [default: 0] // Ordre d’affichage
+
+  created_at timestamp [not null]
+}
+
+Table listing_availabilities {
+  id uuid [pk]
+  listing_id uuid [not null, ref: > listings.id] // Annonce concernée
+
+  start_date timestamp [not null] // Début de disponibilité
+  end_date timestamp [not null] // Fin de disponibilité
+  status varchar(30) [not null, default: 'AVAILABLE'] // AVAILABLE, BLOCKED, RESERVED
+
+  created_at timestamp [not null]
+}
+
+Table favorites {
+  user_id uuid [ref: > user.id] // Utilisateur
+  listing_id uuid [ref: > listings.id] // Annonce favorite
+  created_at timestamp [not null]
+
+  indexes {
+    (user_id, listing_id) [pk]
+  }
+}
+
+Table listing_requests {
+  id uuid [pk]
+  listing_id uuid [not null, ref: > listings.id] // Annonce demandée
+  requester_id uuid [not null, ref: > user.id] // Demandeur
+  owner_id uuid [not null, ref: > user.id] // Propriétaire
+
+  request_type varchar(30) [not null] // BUY, BORROW, RENT, SERVICE
+  start_date timestamp // Début souhaité
+  end_date timestamp // Fin souhaitée
+  message text // Message initial
+
+  status varchar(30) [not null, default: 'PENDING'] // PENDING, ACCEPTED, REJECTED, CANCELLED, COMPLETED
+
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table conversations {
+  id uuid [pk]
+  listing_id uuid [ref: > listings.id] // Annonce liée
+  request_id uuid [ref: > listing_requests.id] // Demande liée
+
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table conversation_participants {
+  conversation_id uuid [ref: > conversations.id] // Conversation
+  user_id uuid [ref: > user.id] // Participant
+  last_read_at timestamp // Dernière lecture
+  joined_at timestamp [not null]
+
+  indexes {
+    (conversation_id, user_id) [pk]
+  }
+}
+
+Table messages {
+  id uuid [pk]
+  conversation_id uuid [not null, ref: > conversations.id] // Conversation associée
+  sender_id uuid [not null, ref: > user.id] // Expéditeur
+
+  content text [not null] // Contenu du message
+  read_at timestamp // Date de lecture
+
+  created_at timestamp [not null]
+  deleted_at timestamp
+}
+
+Table reviews {
+  id uuid [pk]
+  listing_id uuid [ref: > listings.id] // Annonce concernée
+  reviewer_id uuid [not null, ref: > user.id] // Auteur de l’avis
+  reviewed_user_id uuid [not null, ref: > user.id] // Utilisateur évalué
+
+  rating integer [not null] // Note de 1 à 5
+  comment text // Commentaire
+
+  created_at timestamp [not null]
+
+  indexes {
+    (listing_id, reviewer_id, reviewed_user_id) [unique]
+  }
+}
+
+Table reports {
+  id uuid [pk]
+  reporter_id uuid [not null, ref: > user.id] // Auteur du signalement
+  reported_user_id uuid [ref: > user.id] // Utilisateur signalé
+  listing_id uuid [ref: > listings.id] // Annonce signalée
+  message_id uuid [ref: > messages.id] // Message signalé
+
+  reason varchar(100) [not null] // Motif
+  details text // Détails du signalement
+  status varchar(30) [not null, default: 'OPEN'] // OPEN, IN_REVIEW, RESOLVED, REJECTED
+
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table moderation_actions {
+  id uuid [pk]
+  moderator_id uuid [not null, ref: > user.id] // Modérateur
+  target_user_id uuid [ref: > user.id] // Utilisateur concerné
+  listing_id uuid [ref: > listings.id] // Annonce concernée
+  report_id uuid [ref: > reports.id] // Signalement lié
+
+  action_type varchar(50) [not null] // WARN, SUSPEND_USER, BLOCK_LISTING, DELETE_LISTING
+  reason text // Raison de l’action
+
+  created_at timestamp [not null]
+}
+
+Table notifications {
+  id uuid [pk]
+  user_id uuid [not null, ref: > user.id] // Destinataire
+
+  type varchar(50) [not null] // MESSAGE, REQUEST, REVIEW, REPORT, SYSTEM
+  title varchar(255) [not null] // Titre
+  body text // Contenu
+  target_url text // Lien de redirection
+  read_at timestamp // Date de lecture
+
+  created_at timestamp [not null]
+}
+
+Table payments {
+  id uuid [pk]
+  request_id uuid [ref: > listing_requests.id] // Demande liée
+  payer_id uuid [not null, ref: > user.id] // Payeur
+  receiver_id uuid [not null, ref: > user.id] // Receveur
+
+  amount decimal(10,2) [not null] // Montant total
+  platform_fee decimal(10,2) [default: 0] // Commission plateforme
+  currency varchar(10) [not null, default: 'EUR'] // Devise
+
+  provider varchar(50) // STRIPE, PAYPAL
+  provider_payment_id varchar(255) // ID paiement externe
+
+  status varchar(30) [not null] // PENDING, PAID, FAILED, REFUNDED
+
+  paid_at timestamp
+  created_at timestamp [not null]
+}
+
+Table refunds {
+  id uuid [pk]
+  payment_id uuid [not null, ref: > payments.id] // Paiement remboursé
+
+  amount decimal(10,2) [not null] // Montant remboursé
+  reason text // Motif
+  status varchar(30) [not null] // PENDING, SUCCEEDED, FAILED
+
+  created_at timestamp [not null]
+}
+
+Table user_blocks {
+  blocker_id uuid [ref: > user.id] // Utilisateur qui bloque
+  blocked_id uuid [ref: > user.id] // Utilisateur bloqué
+  created_at timestamp [not null]
+
+  indexes {
+    (blocker_id, blocked_id) [pk]
+  }
+}
+
+Table saved_searches {
+  id uuid [pk]
+  user_id uuid [not null, ref: > user.id] // Utilisateur lié
+
+  name varchar(100) // Nom de la recherche
+  query text // Mot-clé recherché
+  category_id uuid [ref: > categories.id] // Catégorie
+  listing_type varchar(30) // SALE, LOAN, RENTAL, SERVICE
+  min_price decimal(10,2) // Prix minimum
+  max_price decimal(10,2) // Prix maximum
+
+  city varchar(100) // Ville recherchée
+  radius_km integer // Rayon de recherche
+
+  notify_enabled boolean [not null, default: true] // Notifications activées
+
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table audit_logs {
+  id uuid [pk]
+  user_id uuid [ref: > user.id] // Utilisateur ayant fait l’action
+
+  action varchar(100) [not null] // Action effectuée
+  entity_type varchar(100) // Type d’entité
+  entity_id uuid // ID de l’entité
+
+  ip_address varchar(45) // Adresse IP
+  user_agent text // Navigateur ou appareil
+  metadata jsonb // Données complémentaires
+
+  created_at timestamp [not null]
+}
